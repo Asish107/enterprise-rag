@@ -1,0 +1,26 @@
+Acme Corp Remote Work Policy
+
+1. Eligibility
+Full-time employees who have completed 90 days of employment are eligible to
+work remotely up to three days per week. Contractors are not covered by this
+policy and should refer to their statement of work.
+
+2. Equipment
+Acme provides each remote employee with a laptop, an external monitor, and a
+one-time home-office stipend of 500 USD. Employees are responsible for a
+reliable internet connection of at least 50 Mbps.
+
+3. Security
+Remote workers must connect through the company VPN when accessing internal
+systems. Devices must have full-disk encryption enabled and automatic screen
+lock set to five minutes. Storing customer data on personal devices is
+strictly prohibited.
+
+4. Working Hours
+Core collaboration hours are 10:00 to 15:00 in the employee's local time zone.
+Outside of core hours, employees may set their own schedule as long as weekly
+deliverables are met.
+
+5. Reimbursement
+Approved co-working space memberships are reimbursed up to 200 USD per month.
+Receipts must be submitted within 30 days through the expense portal.

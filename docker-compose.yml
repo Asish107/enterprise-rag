@@ -1,0 +1,20 @@
+services:
+  enterprise-rag:
+    build: .
+    image: enterprise-rag:latest
+    ports:
+      - "8000:8000"
+    environment:
+      # Set to enable Claude-generated grounded answers; unset uses the
+      # deterministic extractive fallback.
+      - ANTHROPIC_API_KEY=${ANTHROPIC_API_KEY:-}
+      - RAG_GENERATION_MODEL=${RAG_GENERATION_MODEL:-claude-sonnet-5}
+      - RAG_TOP_K=${RAG_TOP_K:-4}
+    volumes:
+      # Persist the FAISS index and the HF model cache across restarts.
+      - rag-index:/app/data/index
+      - hf-cache:/app/.cache/huggingface
+
+volumes:
+  rag-index:
+  hf-cache:

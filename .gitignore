@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+.eggs/
+build/
+dist/
+.venv/
+venv/
+env/
+
+# Env / secrets
+.env
+*.env
+!.env.example
+
+# RAG artifacts
+data/index/
+*.faiss
+*.pkl
+
+# Model / HF cache
+.cache/
+.huggingface/
+
+# Tooling
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.DS_Store
+.idea/
+.vscode/
