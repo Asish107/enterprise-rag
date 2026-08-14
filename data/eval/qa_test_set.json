@@ -1,0 +1,62 @@
+[
+  {
+    "question": "How many days per week can employees work remotely?",
+    "ground_truth": "Full-time employees can work remotely up to three days per week.",
+    "expected_keywords": ["three days", "remotely"],
+    "expected_source": "sample_policy.txt"
+  },
+  {
+    "question": "What is the one-time home-office stipend?",
+    "ground_truth": "Acme provides a one-time home-office stipend of 500 USD.",
+    "expected_keywords": ["500", "stipend"],
+    "expected_source": "sample_policy.txt"
+  },
+  {
+    "question": "What minimum internet speed is required for remote work?",
+    "ground_truth": "Remote employees need a reliable internet connection of at least 50 Mbps.",
+    "expected_keywords": ["50 Mbps"],
+    "expected_source": "sample_policy.txt"
+  },
+  {
+    "question": "What are the core collaboration hours?",
+    "ground_truth": "Core collaboration hours are 10:00 to 15:00 in the employee's local time zone.",
+    "expected_keywords": ["10:00", "15:00", "core"],
+    "expected_source": "sample_policy.txt"
+  },
+  {
+    "question": "How much of a co-working space membership is reimbursed each month?",
+    "ground_truth": "Approved co-working space memberships are reimbursed up to 200 USD per month.",
+    "expected_keywords": ["200", "month"],
+    "expected_source": "sample_policy.txt"
+  },
+  {
+    "question": "What is the refund window after purchase?",
+    "ground_truth": "There is a full refund within 14 days of the initial purchase.",
+    "expected_keywords": ["14 days", "refund"],
+    "expected_source": "sample_faq.md"
+  },
+  {
+    "question": "How long is data retained after cancellation?",
+    "ground_truth": "After cancellation, data is retained for 30 days and then permanently deleted.",
+    "expected_keywords": ["30 days", "deleted"],
+    "expected_source": "sample_faq.md"
+  },
+  {
+    "question": "In which regions is customer data stored?",
+    "ground_truth": "Customer data is stored encrypted in US-East and EU-West regions.",
+    "expected_keywords": ["US-East", "EU-West"],
+    "expected_source": "sample_faq.md"
+  },
+  {
+    "question": "What response SLA do enterprise plans include?",
+    "ground_truth": "Enterprise plans include 24/7 priority support with a one-hour response SLA.",
+    "expected_keywords": ["one-hour", "24/7"],
+    "expected_source": "sample_faq.md"
+  },
+  {
+    "question": "What is the boiling point of helium?",
+    "ground_truth": "",
+    "expected_keywords": [],
+    "expected_source": null
+  }
+]

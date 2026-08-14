@@ -26,10 +26,23 @@ GROUNDING_THRESHOLD = 0.35
 
 
 @dataclass
+class TokenUsage:
+    prompt_tokens: int = 0
+    completion_tokens: int = 0
+    total_tokens: int = 0
+    cost_usd: float = 0.0
+
+
+@dataclass
 class GenerationResult:
     answer: str
     grounded: bool
     model: str
+    usage: TokenUsage = None  # type: ignore[assignment]
+
+    def __post_init__(self):
+        if self.usage is None:
+            self.usage = TokenUsage()
 
 
 def _format_context(chunks: list[RetrievedChunk]) -> str:
@@ -52,15 +65,70 @@ def _extractive_answer(question: str, chunks: list[RetrievedChunk]) -> str:
     return "\n".join(lines)
 
 
+def _usage(model: str, prompt_tokens: int, completion_tokens: int) -> TokenUsage:
+    from .pricing import cost_usd
+
+    return TokenUsage(
+        prompt_tokens=prompt_tokens,
+        completion_tokens=completion_tokens,
+        total_tokens=prompt_tokens + completion_tokens,
+        cost_usd=cost_usd(model, prompt_tokens, completion_tokens),
+    )
+
+
+def _generate_openrouter(
+    prompt: str, *, api_key: str, base_url: str, model: str, max_tokens: int
+) -> tuple[str, TokenUsage]:
+    """Grounded generation via OpenRouter's OpenAI-compatible chat API."""
+    from openai import OpenAI
+
+    client = OpenAI(api_key=api_key, base_url=base_url)
+    completion = client.chat.completions.create(
+        model=model,
+        max_tokens=max_tokens,
+        messages=[
+            {"role": "system", "content": SYSTEM_PROMPT},
+            {"role": "user", "content": prompt},
+        ],
+    )
+    answer = (completion.choices[0].message.content or "").strip()
+    u = completion.usage
+    usage = _usage(model, getattr(u, "prompt_tokens", 0), getattr(u, "completion_tokens", 0))
+    return answer, usage
+
+
+def _generate_anthropic(
+    prompt: str, *, api_key: str, model: str, max_tokens: int
+) -> tuple[str, TokenUsage]:
+    """Grounded generation via the native Anthropic Messages API."""
+    from anthropic import Anthropic
+
+    client = Anthropic(api_key=api_key)
+    message = client.messages.create(
+        model=model,
+        max_tokens=max_tokens,
+        system=SYSTEM_PROMPT,
+        messages=[{"role": "user", "content": prompt}],
+    )
+    answer = "".join(b.text for b in message.content if b.type == "text").strip()
+    usage = _usage(model, message.usage.input_tokens, message.usage.output_tokens)
+    return answer, usage
+
+
 def generate_answer(
     question: str,
     chunks: list[RetrievedChunk],
     *,
-    api_key: str | None,
+    confidence: float,
+    anthropic_api_key: str | None = None,
+    openrouter_api_key: str | None = None,
+    openrouter_base_url: str = "https://openrouter.ai/api/v1",
     model: str,
     max_tokens: int,
 ) -> GenerationResult:
-    grounded = bool(chunks) and chunks[0].score >= GROUNDING_THRESHOLD
+    # Grounding uses the absolute dense-retrieval confidence, not the reranker's
+    # relative per-candidate score (whose top value is near-constant).
+    grounded = bool(chunks) and confidence >= GROUNDING_THRESHOLD
 
     if not grounded:
         return GenerationResult(
@@ -72,27 +140,45 @@ def generate_answer(
             model="none",
         )
 
-    if not api_key:
-        return GenerationResult(
-            answer=_extractive_answer(question, chunks),
-            grounded=True,
-            model="extractive-fallback",
-        )
+    prompt = f"Context passages:\n{_format_context(chunks)}\n\nQuestion: {question}"
 
-    from anthropic import Anthropic
+    # Backend priority: OpenRouter -> Anthropic -> extractive fallback. If a
+    # configured LLM backend errors (bad key, rate limit, network), we degrade
+    # to the extractive answer rather than failing the request outright.
+    if openrouter_api_key:
+        try:
+            answer, usage = _generate_openrouter(
+                prompt,
+                api_key=openrouter_api_key,
+                base_url=openrouter_base_url,
+                model=model,
+                max_tokens=max_tokens,
+            )
+            return GenerationResult(
+                answer=answer, grounded=True, model=f"openrouter/{model}", usage=usage
+            )
+        except Exception as exc:  # noqa: BLE001 - degrade gracefully
+            return GenerationResult(
+                answer=_extractive_answer(question, chunks),
+                grounded=True,
+                model=f"extractive-fallback (openrouter error: {type(exc).__name__})",
+            )
 
-    client = Anthropic(api_key=api_key)
-    context = _format_context(chunks)
-    message = client.messages.create(
-        model=model,
-        max_tokens=max_tokens,
-        system=SYSTEM_PROMPT,
-        messages=[
-            {
-                "role": "user",
-                "content": f"Context passages:\n{context}\n\nQuestion: {question}",
-            }
-        ],
+    if anthropic_api_key:
+        try:
+            answer, usage = _generate_anthropic(
+                prompt, api_key=anthropic_api_key, model=model, max_tokens=max_tokens
+            )
+            return GenerationResult(answer=answer, grounded=True, model=model, usage=usage)
+        except Exception as exc:  # noqa: BLE001 - degrade gracefully
+            return GenerationResult(
+                answer=_extractive_answer(question, chunks),
+                grounded=True,
+                model=f"extractive-fallback (anthropic error: {type(exc).__name__})",
+            )
+
+    return GenerationResult(
+        answer=_extractive_answer(question, chunks),
+        grounded=True,
+        model="extractive-fallback",
     )
-    answer = "".join(block.text for block in message.content if block.type == "text")
-    return GenerationResult(answer=answer.strip(), grounded=True, model=model)

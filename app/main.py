@@ -9,7 +9,14 @@ from fastapi import Depends, FastAPI, File, HTTPException, UploadFile
 from app.config import Settings, get_settings
 from app.eval import evaluate
 from app.ingestion import SUPPORTED_FORMATS
-from app.models import EvalRequest, EvalReport, IngestResponse, QueryRequest, QueryResponse
+from app.models import (
+    DocumentInfo,
+    EvalReport,
+    EvalRequest,
+    IngestResponse,
+    QueryRequest,
+    QueryResponse,
+)
 from app.service import RAGService
 
 app = FastAPI(
@@ -57,6 +64,18 @@ async def ingest(
             raise HTTPException(status_code=400, detail=str(exc)) from exc
 
 
+@app.get("/documents", response_model=list[DocumentInfo])
+def list_documents(service: RAGService = Depends(get_service)) -> list[DocumentInfo]:
+    return service.list_documents()
+
+
+@app.delete("/documents/{document_id}")
+def delete_document(document_id: str, service: RAGService = Depends(get_service)) -> dict:
+    if not service.delete_document(document_id):
+        raise HTTPException(status_code=404, detail=f"Unknown document '{document_id}'")
+    return {"deleted": document_id}
+
+
 @app.post("/query", response_model=QueryResponse)
 def query(req: QueryRequest, service: RAGService = Depends(get_service)) -> QueryResponse:
     return service.query(req.question, top_k=req.top_k)
@@ -64,4 +83,8 @@ def query(req: QueryRequest, service: RAGService = Depends(get_service)) -> Quer
 
 @app.post("/evaluate", response_model=EvalReport)
 def run_eval(req: EvalRequest, service: RAGService = Depends(get_service)) -> EvalReport:
-    return evaluate(req.samples, lambda q: service.query(q, top_k=req.top_k))
+    return evaluate(
+        req.samples,
+        lambda q: service.query(q, top_k=req.top_k),
+        embedder=service.retriever.vectors._embeddings,
+    )

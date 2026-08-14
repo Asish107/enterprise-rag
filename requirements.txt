@@ -9,15 +9,17 @@ langchain==0.3.14
 langchain-community==0.3.14
 langchain-text-splitters==0.3.5
 langchain-huggingface==0.1.2
-sentence-transformers==3.3.1
+sentence-transformers==3.3.1  # embeddings + cross-encoder reranker
 faiss-cpu==1.9.0.post1
+rank-bm25==0.2.2  # sparse keyword retrieval for hybrid search
 
 # Document loaders
 pypdf==5.1.0
 python-docx==1.1.2
 
-# Optional LLM generation (falls back to extractive if unset)
+# Optional LLM generation (falls back to extractive if no key is set)
 anthropic==0.42.0
+openai==1.59.6  # used for the OpenRouter (OpenAI-compatible) backend
 
 # Tests
 pytest==8.3.4
